@@ -23,12 +23,12 @@ module.exports = initApp;
 // Initialise the application
 function initApp(config, callback) {
 
-	const app = module.exports = {
+	const app = {
 		server: new Hapi.Server({
 			host: config.host,
 			port: config.port
 		}),
-		database: null,
+		db: null,
 		model: {},
 		config: config
 	};
@@ -37,11 +37,15 @@ function initApp(config, callback) {
 		next => {
 			/* eslint camelcase: 'off' */
 			MongoClient.connect(config.database, {
-				autoReconnect: true
-			}, (error, db) => {
+				useUnifiedTopology: true
+			}, (error, client) => {
+				// http://mongodb.github.io/node-mongodb-native/3.6/api/MongoClient.html
+				const db = client.db();
+				app.client = client;
+
 				if (error) {
-					console.log('Error connecting to MongoDB:');
-					console.log(JSON.stringify(error));
+					console.error('Error connecting to MongoDB:');
+					console.error(JSON.stringify(error));
 					return next(error);
 				}
 
@@ -97,7 +101,6 @@ function initApp(config, callback) {
 					() => next(),
 					error => next(error)
 				);
-
 			console.log(`Server running at: ${app.server.info.uri}`);
 		}
 

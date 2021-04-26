@@ -22,11 +22,9 @@ const {ObjectID} = require('mongodb');
 
 // Result model
 module.exports = function(app, callback) {
-	app.db.collection('results', (errors, collection) => {
-		collection.ensureIndex({
+	app.db.collection('results', async (errors, collection) => {
+		await collection.createIndex({
 			date: 1
-		}, {
-			w: -1
 		});
 
 		const model = {
@@ -40,7 +38,7 @@ module.exports = function(app, callback) {
 				if (newResult.task && !(newResult.task instanceof ObjectID)) {
 					newResult.task = new ObjectID(newResult.task);
 				}
-				return collection.insert(newResult)
+				return collection.insertOne(newResult)
 					.then(result => model.prepareForOutput(result.ops[0]))
 					.catch(error => {
 						console.error('model:result:create failed', error.message);
@@ -98,10 +96,10 @@ module.exports = function(app, callback) {
 				try {
 					id = new ObjectID(id);
 				} catch (error) {
-					console.error('ObjectID generation failed.', error.message);
+					console.error('ObjectID generation failed for id: ' + id, error.message);
 					return null;
 				}
-				return collection.findOne({_id: id})
+				return model.collection.findOne({_id: id})
 					.then(result => {
 						if (result) {
 							result = prepare(result);
@@ -125,10 +123,10 @@ module.exports = function(app, callback) {
 				try {
 					id = new ObjectID(id);
 				} catch (error) {
-					console.error('ObjectID generation failed.', error.message);
+					console.error('ObjectID generation failed for id: ' + id, error.message);
 					return null;
 				}
-				return collection.deleteMany({task: id})
+				return model.collection.deleteMany({task: id})
 					.catch(error => {
 						console.error(`model:result:deleteByTaskId failed, with id: ${id}`);
 						console.error(error.message);
@@ -143,11 +141,11 @@ module.exports = function(app, callback) {
 					id = new ObjectID(id);
 					task = new ObjectID(task);
 				} catch (error) {
-					console.error('ObjectID generation failed.', error.message);
+					console.error('ObjectID generation failed for id: ' + id, error.message);
 					return null;
 				}
 
-				return collection.findOne({
+				return model.collection.findOne({
 					_id: id,
 					task: task
 				})
